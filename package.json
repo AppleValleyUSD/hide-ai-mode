@@ -1,0 +1,14 @@
+{
+  "name": "avusd-hide-ai-mode",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted ChromeOS extension that hides Google Search AI Mode for the AVUSD Student OU.",
+  "scripts": {
+    "build": "mkdir -p dist && crx3 -p key.pem -o dist/avusd-hide-ai-mode.crx -x dist/update.xml src && node scripts/set-codebase.mjs",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "crx3": "^2.0.0"
+  }
+}

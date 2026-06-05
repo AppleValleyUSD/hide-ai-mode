@@ -1,0 +1,32 @@
+/*
+ * First-layer hiding via attribute selectors. This runs before paint, so it
+ * catches the common cases instantly without waiting for JavaScript. The JS
+ * content script handles everything dynamic / text-based that CSS can't match.
+ *
+ * These selectors are intentionally broad. If Google changes its markup, update
+ * here and/or in content.js. Attribute-based selectors (href*, aria-label) tend
+ * to survive layout churn better than class names, which Google rotates often.
+ */
+
+/* AI Mode tab / pill: the entry link usually points at a udm=50 (AI Mode) URL. */
+a[href*="udm=50"],
+a[href*="&aimode="],
+a[href*="?aimode="] {
+  display: none !important;
+}
+
+/* AI Mode and Lens buttons inside the search box, matched by accessible label. */
+[aria-label="AI Mode" i],
+[aria-label="Search with AI Mode" i],
+[aria-label="Dive deeper with AI Mode" i],
+[data-ai-mode],
+[jsname][aria-label*="AI Mode" i] {
+  display: none !important;
+}
+
+/* AI Overview blocks have used these container hooks. Safe to hide outright. */
+#m-x-content,
+div[data-attrid="AIOverview"],
+div[aria-label="AI Overview" i] {
+  display: none !important;
+}

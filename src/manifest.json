@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "AVUSD - Hide Google AI Mode",
+  "version": "1.0.0",
+  "description": "Hides Google Search AI Mode entry points and AI Overviews on managed student devices. No data collection, scoped to google.com only.",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.google.com/*",
+        "*://google.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["hide.css"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}
