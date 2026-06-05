@@ -2,7 +2,7 @@
 
 A tiny, self-hosted Chrome/ChromeOS extension that removes Google Search's **AI
 Mode** for the district's Student OU. Force-installed via the Google Admin
-console.
+console. **It is one of two pieces** — see "Two surfaces" below.
 
 ## What it does
 - If a search page loads in AI Mode (`udm=50`), it **redirects** to the normal
@@ -11,14 +11,26 @@ console.
   as Google rebuilds the DOM.
 - Scoped to `google.com` only. No data collection, no extra permissions.
 
-## Why we can't just flip a setting
-Google serves AI Mode to Workspace for Education accounts marked **under 18**
-regardless of Admin console settings, and there is **no native Admin switch** for
-the in-page AI Mode tab — it's part of core Google Search, not a Chrome policy.
-A force-installed extension that hides/redirects it is the only working lever.
-(We verified the native controls first — age-based access set to under-18, GenAI
-policy defaults, Text Capture, Lens region search, Search & Assistant all denied
-on the Student OU — and none of them turn off the in-page AI Mode tab.)
+## Two surfaces — you need BOTH the policy AND the extension
+Google serves AI Mode in two separate places. One Admin setting only covers one of
+them:
+
+| Surface | Where it lives | What blocks it |
+|---|---|---|
+| **AI Mode built into Chrome** | The address bar / new-tab search box. Opens an internal `chrome://contextual-tasks/` page. | **Admin policy `AIModeSettings` = "Do not allow AI Mode."** Extensions **cannot** run on `chrome://` pages, so the extension is powerless here. |
+| **AI Mode inside the google.com page** | The in-page "AI Mode" tab/pill and AI Overviews on a normal results page (`udm=50`). | **This extension** (redirect + hide). It's Google web content tied to the under-18 account — no Admin switch removes it. |
+
+**The Admin policy alone is not enough, and the extension alone is not enough.**
+Set `AIModeSettings` to "Do not allow" on the Student OU (Devices → Chrome →
+Settings → Users & browsers → search "AI Mode", under Generative AI; pair with
+`GenAiDefaultSettings` = "Do not allow"), **and** force-install this extension.
+Verified in pilot (June 2026): with the policy on, the google.com AI Mode tab may
+still appear, but running a search lands on normal results — the extension's
+redirect catches it.
+
+(We verified the older native levers too — age-based access under-18, Text
+Capture, Lens region search, Search & Assistant all denied — and none of them
+touch either AI Mode surface.)
 
 ## Key facts
 - `udm=50` = AI Mode → **block/redirect**.
@@ -57,7 +69,8 @@ Confirm both load in a browser (the `.xml` shows XML, the `.crx` downloads). **D
 not upload `key.pem`.** Make sure the Lightspeed filter allows the host for the
 Student profile.
 
-## Force-install in Google Admin
+## Google Admin — do BOTH of these on the OU
+**A. Force-install the extension**
 1. Admin → Devices → Chrome → Apps & extensions → Users & browsers.
 2. Select the OU (pilot OU first).
 3. Yellow **+** → **Add Chrome app or extension by URL**.
@@ -65,12 +78,24 @@ Student profile.
 5. URL: your hosted `update.xml` URL.
 6. Installation policy: **Force install** → Save.
 
+**B. Disable Chrome's built-in AI Mode (the policy)**
+1. Admin → Devices → Chrome → **Settings → Users & browsers**.
+2. Same OU. In the settings search box, type **`AI Mode`** (Generative AI section).
+3. Set it to **"Do not allow AI Mode"** (the `AIModeSettings` policy) → Save.
+4. Recommended: also set **`GenAiDefaultSettings`** to "Do not allow" for breadth.
+
+> Skipping B leaves the address-bar / in-Chrome AI Mode (`chrome://contextual-tasks`)
+> fully working — the extension cannot block that surface.
+
 ## Verify on a pilot device
 1. On a test student Chromebook: `chrome://policy` → **Reload policies**.
-2. `chrome://extensions` should list **"AVUSD - Hide Google AI Mode"** as
-   force-installed.
-3. Run an AI Mode search (a `udm=50` URL): it should bounce to normal Web results
-   and the **AI Mode pill should be gone**.
+2. Confirm **`AIModeSettings`** shows value **1** (do not allow), and
+   `chrome://extensions` lists **"AVUSD - Hide Google AI Mode"** as force-installed.
+3. Try AI Mode from the **address bar** → it should no longer open the
+   `chrome://contextual-tasks` page.
+4. Run an AI Mode search on **google.com** (`udm=50`) → it should bounce to normal
+   Web results. (The AI Mode tab may still be visible, but the search returns
+   normal results — that's the redirect working.)
 
 Confirm on the pilot OU before rolling out to the full Student OU.
 
