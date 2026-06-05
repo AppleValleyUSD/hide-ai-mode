@@ -34,17 +34,28 @@
   })();
 
   // 1) Redirect away from AI Mode pages.
-  if (ENABLE_REDIRECT) {
+  // Google Search is a single-page app: clicking "AI Mode" (or starting an AI
+  // search from the homepage) usually swaps the page in via the History API
+  // WITHOUT a full reload, so a one-time check at load isn't enough — we must
+  // re-check the URL on every in-page navigation (wired up at the bottom).
+  // NOTE: a content script runs in an isolated world, so monkeypatching
+  // history.pushState here would NOT see the page's own calls. Instead we watch
+  // popstate, re-check on DOM mutations, and poll the URL on a light interval.
+  function redirectIfAiMode() {
+    if (!ENABLE_REDIRECT) return false;
     try {
       var url = new URL(window.location.href);
-      var udm = url.searchParams.get("udm");
-      if (udm === "50") {
+      if (url.searchParams.get("udm") === "50") {
         url.searchParams.set("udm", "14");
         window.location.replace(url.toString());
-        return; // stop; the page is navigating away
+        return true; // page is navigating away
       }
     } catch (e) { /* ignore and fall through to hiding */ }
+    return false;
   }
+
+  // Fires for full page loads that land directly on a udm=50 URL.
+  if (redirectIfAiMode()) return;
 
   function looksLikeAiMode(el) {
     if (!el || !el.getAttribute) return false;
@@ -104,6 +115,9 @@
 
   function startObserver() {
     var obs = new MutationObserver(function (mutations) {
+      // An in-page navigation into AI Mode triggers a burst of DOM changes;
+      // this is the fastest place to catch the udm=50 swap and bounce away.
+      if (redirectIfAiMode()) return;
       for (var i = 0; i < mutations.length; i++) {
         var m = mutations[i];
         // An attribute (href / aria-label) changed on an existing node, turning
@@ -134,6 +148,11 @@
   // entry points as the parser streams them in or scripts inject them.
   sweep(document);
   startObserver();
+  // Catch single-page (History API) navigations into AI Mode, which don't
+  // reload the document: back/forward fires popstate, but programmatic
+  // pushState does not, so also poll the URL on a light interval as a backstop.
+  window.addEventListener("popstate", redirectIfAiMode);
+  setInterval(redirectIfAiMode, 500);
   // Re-sweep once the full initial DOM is parsed, in case the pill was in the
   // server-rendered markup but arrived after our first sweep.
   if (document.readyState === "loading") {
